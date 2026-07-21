@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hobby Circuit — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #F1F4EE;
+    --ink: #1F2420;
+    --ink-soft: #5B6459;
+    --teal: #3B6E5E;
+    --teal-dark: #294D41;
+    --ochre: #C97C3D;
+    --card: #FFFFFF;
+    --border: #DCE3D8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.5;
+    padding: 0 20px 80px;
+  }
+  header {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 48px 0 32px;
+    text-align: center;
+  }
+  .loop {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    border: 3px dashed var(--teal);
+    position: relative;
+    animation: spin 40s linear infinite;
+  }
+  .loop::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ochre);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .loop { animation: none; }
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 2.4rem;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  .tagline {
+    color: var(--ink-soft);
+    font-size: 1.05rem;
+    margin: 0;
+  }
+  main {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.25rem;
+    margin: 0 0 4px;
+  }
+  .card .hint {
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    margin: 0 0 18px;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  label:first-of-type { margin-top: 0; }
+  input, select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  input:focus, select:focus, button:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 1px;
+  }
+  .row { display: flex; gap: 10px; align-items: flex-end; }
+  .row > div { flex: 1; }
+  button {
+    background: var(--teal);
+    color: white;
+    border: none;
+    padding: 11px 18px;
+    border-radius: 9px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 16px;
+    font-family: inherit;
+  }
+  button:hover { background: var(--teal-dark); }
+  button.secondary {
+    background: transparent;
+    color: var(--teal-dark);
+    border: 1px solid var(--border);
+  }
+  button.secondary:hover { background: var(--border); }
+  .status {
+    font-size: 0.85rem;
+    margin-top: 10px;
+    min-height: 18px;
+  }
+  .status.ok { color: var(--teal-dark); }
+  .status.err { color: #A0442A; }
+  #whoami {
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  #whoami strong { color: var(--ink); }
+  .feed { display: flex; flex-direction: column; gap: 10px; }
+  .item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .item .who {
+    font-weight: 500;
+  }
+  .item .what {
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+  }
+  .item .duration {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    background: var(--bg);
+    padding: 4px 9px;
+    border-radius: 6px;
+    color: var(--teal-dark);
+    white-space: nowrap;
+  }
+  .item.ended .duration {
+    color: var(--ink-soft);
+  }
+  .empty {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    padding: 20px 0;
+  }
+  .new-hobby-row {
+    display: none;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="loop"></div>
+  <h1>Hobby Circuit</h1>
+  <p class="tagline">Start something. Pass it on when you're done. Find someone mid-obsession with the same thing.</p>
+</header>
+
+<main>
+  <div id="whoami"></div>
+
+  <!-- Step 1: Who are you (no real auth for this friend test) -->
+  <div class="card" id="identity-card">
+    <h2>Who's this?</h2>
+    <p class="hint">Just a name — no password needed for this test round.</p>
+    <label for="name-input">Your name</label>
+    <input id="name-input" type="text" placeholder="e.g. Trisha" />
+    <button onclick="setIdentity()">This is me</button>
+    <div class="status" id="identity-status"></div>
+  </div>
+
+  <!-- Step 2: Log a hobby -->
+  <div class="card" id="log-card" style="display:none;">
+    <h2>Start a hobby</h2>
+    <p class="hint">No pressure to keep it going — we're just tracking what you're into right now.</p>
+    <label for="hobby-select">Pick a hobby</label>
+    <select id="hobby-select" onchange="toggleNewHobby()">
+      <option value="">Loading...</option>
+    </select>
+    <div class="new-hobby-row" id="new-hobby-row">
+      <label for="new-hobby-input">New hobby name</label>
+      <input id="new-hobby-input" type="text" placeholder="e.g. Espresso brewing" />
+    </div>
+    <button onclick="startHobby()">Start this hobby</button>
+    <div class="status" id="log-status"></div>
+  </div>
+
+  <!-- Feed of what everyone's up to -->
+  <div class="card">
+    <h2>What everyone's into right now</h2>
+    <p class="hint">Active hobbies across everyone testing this with you.</p>
+    <div class="feed" id="active-feed">
+      <div class="empty">Nothing logged yet — be the first.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Wrapped up</h2>
+    <p class="hint">Past hobbies, with how long they actually lasted. No judgment styling on purpose.</p>
+    <div class="feed" id="ended-feed">
+      <div class="empty">Nothing ended yet.</div>
+    </div>
+  </div>
+</main>
+
+<script>
+  // ── SETUP: paste your own Supabase project values here ──
+  const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+  // ──────────────────────────────────────────────────────────
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentTesterId = localStorage.getItem('hc_tester_id');
+  let currentTesterName = localStorage.getItem('hc_tester_name');
+
+  function setStatus(elId, msg, ok) {
+    const el = document.getElementById(elId);
+    el.textContent = msg;
+    el.className = 'status ' + (ok ? 'ok' : 'err');
+  }
+
+  async function setIdentity() {
+    const name = document.getElementById('name-input').value.trim();
+    if (!name) { setStatus('identity-status', 'Enter a name first.', false); return; }
+
+    // Reuse an existing tester row if this name already exists, else create one
+    const { data: existing } = await sb.from('testers').select('*').eq('display_name', name).limit(1);
+    let tester;
+    if (existing && existing.length > 0) {
+      tester = existing[0];
+    } else {
+      const { data, error } = await sb.from('testers').insert({ display_name: name }).select().single();
+      if (error) { setStatus('identity-status', 'Something went wrong: ' + error.message, false); return; }
+      tester = data;
+    }
+    currentTesterId = tester.id;
+    currentTesterName = tester.display_name;
+    localStorage.setItem('hc_tester_id', currentTesterId);
+    localStorage.setItem('hc_tester_name', currentTesterName);
+    afterIdentitySet();
+  }
+
+  function afterIdentitySet() {
+    document.getElementById('whoami').innerHTML = `Logged in as <strong>${currentTesterName}</strong>`;
+    document.getElementById('identity-card').style.display = 'none';
+    document.getElementById('log-card').style.display = 'block';
+    loadHobbies();
+    loadFeed();
+  }
+
+  async function loadHobbies() {
+    const { data, error } = await sb.from('hobbies').select('*').order('name');
+    const select = document.getElementById('hobby-select');
+    select.innerHTML = '';
+    if (error) {
+      select.innerHTML = '<option>Could not load hobbies</option>';
+      return;
+    }
+    data.forEach(h => {
+      const opt = document.createElement('option');
+      opt.value = h.id;
+      opt.textContent = h.name;
+      select.appendChild(opt);
+    });
+    const addOpt = document.createElement('option');
+    addOpt.value = '__new__';
+    addOpt.textContent = "Can't find it? Add a new one";
+    select.appendChild(addOpt);
+  }
+
+  function toggleNewHobby() {
+    const val = document.getElementById('hobby-select').value;
+    document.getElementById('new-hobby-row').style.display = (val === '__new__') ? 'block' : 'none';
+  }
+
+  async function startHobby() {
+    if (!currentTesterId) { setStatus('log-status', 'Set your name first.', false); return; }
+    const select = document.getElementById('hobby-select');
+    let hobbyId = select.value;
+
+    if (!hobbyId) { setStatus('log-status', 'Pick or add a hobby first.', false); return; }
+
+    if (hobbyId === '__new__') {
+      const newName = document.getElementById('new-hobby-input').value.trim();
+      if (!newName) { setStatus('log-status', 'Type the new hobby name.', false); return; }
+      // Check if it already exists under a different casing before inserting
+      const { data: existingHobby } = await sb.from('hobbies').select('*').ilike('name', newName).limit(1);
+      if (existingHobby && existingHobby.length > 0) {
+        hobbyId = existingHobby[0].id;
+      } else {
+        const { data: created, error } = await sb.from('hobbies')
+          .insert({ name: newName, user_submitted: true }).select().single();
+        if (error) { setStatus('log-status', 'Could not add hobby: ' + error.message, false); return; }
+        hobbyId = created.id;
+      }
+      await loadHobbies();
+    }
+
+    const { error: logError } = await sb.from('hobby_logs').insert({
+      tester_id: currentTesterId,
+      hobby_id: hobbyId
+    });
+    if (logError) { setStatus('log-status', 'Could not log it: ' + logError.message, false); return; }
+
+    setStatus('log-status', 'Logged! It will show up below.', true);
+    document.getElementById('new-hobby-input').value = '';
+    loadFeed();
+  }
+
+  async function endHobby(logId) {
+    await sb.from('hobby_logs').update({ ended_at: new Date().toISOString() }).eq('id', logId);
+    loadFeed();
+  }
+
+  function formatDuration(start, end) {
+    const startDate = new Date(start);
+    const endDate = end ? new Date(end) : new Date();
+    const days = Math.max(0, Math.round((endDate - startDate) / (1000 * 60 * 60 * 24)));
+    if (days === 0) return 'started today';
+    if (days === 1) return '1 day';
+    return `${days} days`;
+  }
+
+  async function loadFeed() {
+    const { data, error } = await sb
+      .from('hobby_logs')
+      .select('id, started_at, ended_at, testers(display_name), hobbies(name)')
+      .order('started_at', { ascending: false });
+
+    const activeFeed = document.getElementById('active-feed');
+    const endedFeed = document.getElementById('ended-feed');
+
+    if (error || !data) {
+      activeFeed.innerHTML = '<div class="empty">Could not load — check your Supabase setup.</div>';
+      return;
+    }
+
+    const active = data.filter(d => !d.ended_at);
+    const ended = data.filter(d => d.ended_at);
+
+    activeFeed.innerHTML = active.length ? '' : '<div class="empty">Nothing logged yet — be the first.</div>';
+    active.forEach(log => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      const isMine = log.testers && currentTesterName === log.testers.display_name;
+      div.innerHTML = `
+        <div>
+          <div class="who">${log.testers?.display_name || 'Someone'} — ${log.hobbies?.name || 'a hobby'}</div>
+          <div class="what">${formatDuration(log.started_at)} so far</div>
+        </div>
+        ${isMine ? `<button class="secondary" onclick="endHobby('${log.id}')">Mark ended</button>` : `<span class="duration">active</span>`}
+      `;
+      activeFeed.appendChild(div);
+    });
+
+    endedFeed.innerHTML = ended.length ? '' : '<div class="empty">Nothing ended yet.</div>';
+    ended.forEach(log => {
+      const div = document.createElement('div');
+      div.className = 'item ended';
+      div.innerHTML = `
+        <div>
+          <div class="who">${log.testers?.display_name || 'Someone'} — ${log.hobbies?.name || 'a hobby'}</div>
+        </div>
+        <span class="duration">${formatDuration(log.started_at, log.ended_at)}</span>
+      `;
+      endedFeed.appendChild(div);
+    });
+  }
+
+  // If we already know who this browser is, skip straight to the logged-in view
+  if (currentTesterId && currentTesterName) {
+    afterIdentitySet();
+  }
+</script>
+
+</body>
+</html>
